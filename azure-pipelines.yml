@@ -1,34 +1,31 @@
-# This is a simple wrapper for eng/ci.yml to get around the limitation of
-# user-defined variables not being available in yaml template expressions.
-
-# Parameters ARE available in template expressions, and parameters can have default values,
-# so they can be used to control yaml flow.
-
-variables:
-  # clean the local repo on the build agents
-  - name: Build.Repository.Clean
-    value: true
-
-  # used for post-build phases, internal builds only
-  - ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
-    - group: DotNet-Winforms-SDLValidation-Params
-  - ${{ if ne(variables['System.TeamProject'], 'public') }}:
-    - group: DotNet-MSRC-Storage
-    - group: AzureDevOps-Artifact-Feeds-Pats
   
-# trigger ci builds for completed checkins into master and any release branches
 trigger:
 - master
-- release/*
-- internal/release/*
 
-# trigger ci builds on pull requests into master and any release branches
-pr:
-- master
-- release/*
-- internal/release/*
-- internal/experimental/*
-
-# Call the ci.yml template, which does the real work
 stages:
-- template: /eng/ci.yml
+- stage: build
+  displayName: Build
+  jobs:
+  - template: /eng/common/templates/jobs/jobs.yml
+    parameters:
+      jobs:
+      - job: Windows
+        enableRichCodeNavigation: true
+        richCodeNavigationEnvironment: 'production'
+        pool:
+          name: Hosted Windows 2019 with VS2019
+
+        steps:
+        - checkout: self
+          clean: true
+
+        # Build and rename binlog
+        # The /p:Coverage argument is passed here since some build properties change to accommodate running with
+        # coverage. This is part of the workarounds for https://github.com/tonerdo/coverlet/issues/362 and
+        # https://github.com/tonerdo/coverlet/issues/363.
+        - script: eng\cibuild.cmd
+            -restore
+            -build
+            -configuration Debug
+            /bl:$(BUILD.SOURCESDIRECTORY)\artifacts\log\Debug\BuildSrc.binlog
+          displayName: Build
