@@ -29,10 +29,3 @@ stages:
             -configuration Debug
             /bl:$(BUILD.SOURCESDIRECTORY)\artifacts\log\Debug\BuildSrc.binlog
           displayName: Build
-        
-        - task: UseDotNet@2
-          displayName: 'Use .NET Core sdk'
-          inputs:
-            packageType: sdk
-            version: 3.1.102
-            installationPath: $(BUILD.SOURCESDIRECTORY)\.dotnet
